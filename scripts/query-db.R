@@ -68,4 +68,19 @@ totals <- perform_summary |>
   ) |> 
   arrange(total_distance)
 
+# plot path, specify subject no., level no., and matching level dataframe
+plot_path(1, 6, level_6)
 
+# consider only subjects who completed game
+keep <- who_completed(forage_data)
+
+completed_only <- forage_data |> 
+  filter(subject == keep)
+
+# now get the sequences, resulting df is a little smaller b/c tutorial is 
+# dropped
+seq <- create_sequences(completed_only)
+
+# save
+write_csv(completed_only, "data/piloting/1-13-my-run-only.csv")
+write_csv(seq, "data/piloting/1-13-sequences.csv")

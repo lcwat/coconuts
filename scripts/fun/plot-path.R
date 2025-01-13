@@ -12,8 +12,11 @@ showtext_auto()
 
 showtext_opts(dpi = 300)
 
-plot_path <- function(subject, level, location_df, forage_df, level_df) {
-  # define level
+plot_path <- function(
+    subject, level, level_df,
+    location_df = location_data, forage_df = forage_data
+  ) {
+  # define level for filtering data and for defining which df to use
   level_string <- paste("_level", level, sep = "_")
   
   # plot the path of a given subject on a certain level
