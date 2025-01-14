@@ -31,6 +31,9 @@ source("scripts/fun/calc-perform-metrics.R")
 source("scripts/fun/find-who-completed.R")
 source("scripts/fun/create-sequences.R")
 source("scripts/fun/plot-path.R")
+source("scripts/fun/determinism.R")
+source("scripts/fun/entropy.R")
+source("scripts/fun/AutoO.R")
 
 # establish con -----------------------------------------------------------
 
@@ -84,3 +87,76 @@ seq <- create_sequences(completed_only)
 # save
 write_csv(completed_only, "data/piloting/1-13-my-run-only.csv")
 write_csv(seq, "data/piloting/1-13-sequences.csv")
+
+seq <- read_csv("data/piloting/1-13-sequences.csv")
+
+SEQ <- seq |> 
+  filter(level == "_level_10") |> 
+  pull(obj_ID)
+
+# check out recurrance plot and determinism
+recurrencePlot(SEQ, m = 1, d = 0, eps = 1, nt = 1, end.time = 800, pch = 16, cex = .1)
+
+# could use piloting to decide appropriate minimum L value, 5 seems appropriate for now
+determinism(SEQ, 5)
+
+# loop through df and find determinism value for each level, save to new df
+for(i in 1:10) {
+  # create level string to filter for the sequence
+  level_string <- paste("_level_", i, sep = "")
+  
+  SEQ <- seq |> 
+    filter(level == level_string) |> 
+    pull(obj_ID)
+  
+  # calculate
+  deter <- determinism(SEQ, 5)
+  
+  det_table <- det_table |> 
+    add_row(
+      subject = 1, level = i, det = deter
+    )
+}
+
+# create table for output
+output <- tibble(
+  subject = numeric(), 
+  level = numeric(), 
+  det = numeric(), 
+  rmi = numeric(),
+  ood = numeric()
+)
+
+# loop through df and find entropy value for each level, prob best to do this
+# on the desktop, takes quite a bit of memory to do, will be slow on laptop
+for(i in seq_along(seq$subject)) {
+  # set subj number
+  subj <- seq$subject[[i]]
+  
+  # loop though the 10 levels
+  for(j in 1:10) {
+    # create level string to filter for the sequence
+    level_string <- paste("_level_", j, sep = "")
+    
+    s <- seq |> 
+      filter(subject == subj, level == level_string) |> 
+      pull(obj_ID)
+    
+    # calculate determinism (d), entropy (e)/routine movement index (r), order 
+    # of dependency (o) (additional info.)
+    d <- determinism(s, 5)
+    
+    e <- entropy(s)
+    
+    r <- 1 - min(e)
+    
+    o <- AutoO(e)
+    
+    output <- output |> 
+      add_row(
+        subject = subj, level = j, det = deter, rmi = r, ood = o
+      )
+  }
+}
+
+
