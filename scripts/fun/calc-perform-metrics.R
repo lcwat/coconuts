@@ -13,13 +13,13 @@ calc_perform_metrics <- function(location_df) {
     mutate(
       distance_from_last = if_else(
         # don't calc distance between diff subj sessions
-        location_df$subject == lag(location_df$subject, default = 0),
+        location_df$subject == dplyr::lag(location_df$subject, default = 0),
         # don't calc distance between diff levels
         if_else(
-          location_df$level == lag(location_df$level, default = ""), 
+          location_df$level == dplyr::lag(location_df$level, default = ""), 
           sqrt(
-            (location_df$x - lag(location_df$x, default = 0))^2 + 
-              (location_df$y - lag(location_df$y, default = 0))^2
+            (location_df$x - dplyr::lag(location_df$x, default = 0))^2 + 
+              (location_df$y - dplyr::lag(location_df$y, default = 0))^2
           ),
           0
         ),
