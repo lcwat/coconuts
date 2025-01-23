@@ -9,6 +9,7 @@
 library(DBI) # database access in R
 library(RMariaDB) # con to MySQL db
 library(tidyverse)
+library(keyring) # access password for db
 
 # load arrangements -------------------------------------------------------
 
@@ -31,11 +32,16 @@ con <- dbConnect(
   host = "s161.servername.online",
   port = 3306,
   username = "psych270_data_access", 
-  password = "K=2vtcy1W3wq"
+  password = key_get("coconuts", "r_user")
 )
 
 # have to add this user to db then specify ip address where it can be accessed
 # by this user
+
+
+## -----------------------------------------------------------------------------
+##      subject data
+## -----------------------------------------------------------------------------
 
 # list tables in db
 dbListTables(con)
@@ -47,7 +53,8 @@ location_data <- dbReadTable(con, "LocationData")
 
 dbDisconnect(con)
 
-
+# or grab what has already been saved
+forage_data <- read_csv("data/piloting/1-13-my-run-only.csv")
 
 # plot path, specify subject no., level no., and matching level dataframe, 
 # should work well with shiny app, although unsure of how showtext will look
@@ -63,16 +70,31 @@ completed_only <- forage_data |>
 # dropped
 seq <- create_sequences(completed_only)
 
+# check out recurrence plot
 SEQ <- seq |> 
   dplyr::filter(level == "_level_10") |> 
   pull(obj_ID)
 
-# check out recurrance plot and determinism
 recurrencePlot(SEQ, m = 1, d = 0, eps = 1, nt = 1, end.time = 800, pch = 16, cex = .1)
 
 # run this function to generate both routine movement index and determinism #s
 trap <- trapline_metrics(seq)
 
+## -----------------------------------------------------------------------------
+##      simulated data
+## -----------------------------------------------------------------------------
 
+# could have some issues with no subject col
+# grab simulated data
+simulated_forage_data <- read_csv("data/simulation/lvl1-2-100-rep-forage.csv")
 
+summary(simulated_forage_data)
 
+sim <- simulated_forage_data |> 
+  dplyr::filter(forage_number == 1 | forage_number == 2)
+
+seq <- create_sequences(sim, data_type = "simulation")
+
+trap <- trapline_metrics(seq, data_type = "simulation")
+
+determinism(seq, 5)
