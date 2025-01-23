@@ -90,11 +90,30 @@ simulated_forage_data <- read_csv("data/simulation/lvl1-2-100-rep-forage.csv")
 
 summary(simulated_forage_data)
 
-sim <- simulated_forage_data |> 
-  dplyr::filter(forage_number == 1 | forage_number == 2)
-
-seq <- create_sequences(sim, data_type = "simulation")
+seq <- create_sequences(simulated_forage_data, data_type = "simulation")
 
 trap <- trapline_metrics(seq, data_type = "simulation")
 
-determinism(seq, 5)
+# view
+trap |> 
+  ggplot(aes(x = rmi, color = as.factor(nn_rule), fill = as.factor(nn_rule))) +
+  
+  geom_density(
+    alpha = .5
+  ) +
+  
+  facet_wrap(~level, labels = c("Level 1", "Level 2")) +
+  
+  theme_bw()
+
+# see correlation of metrics
+trap |> 
+  ggplot() +
+  
+  geom_point(aes(x = det, y = rmi, color = as.factor(nn_rule))) +
+  
+  theme_bw()
+
+# can see a clear main effect on the agents of level design, whether there are
+# mixed sizes or not
+# nn0 tends to not trapline as much in either scenario  

@@ -6,7 +6,7 @@
 # load compiler to speed up computation
 library(compiler)
 
-entropy <- function(SEQ,max3=110,max4=58,max5=10) {
+entropy <- function(SEQ,max3=110,max4=30,max5=10) {
 
   # this function computes for any sequence SEQ, its Shannon entropy, and the 
   # corrected conditional entropies at orders 1 to 5 following Porta et al. (1998)
