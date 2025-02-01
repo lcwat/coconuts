@@ -17,7 +17,7 @@ trapline_metrics <- function(sequence_df) {
   # create table for output
   output <- tibble(
     subject = numeric(), 
-    level = numeric(), 
+    level = character(), 
     det = numeric(), 
     rmi = numeric(),
     ood = numeric()
