@@ -6,10 +6,35 @@
 
 # load libraries ----------------------------------------------------------
 
+# library(sys)
+# library(ssh)
+# library(glue)
 library(DBI) # database access in R
 library(RMariaDB) # con to MySQL db
 library(tidyverse)
 library(keyring) # access password for db
+
+
+# config tunnel -----------------------------------------------------------
+
+# IN PROGRESS
+# # create ssh tunnel to connect to db over kstate wifi
+# cmd <- 'ssh::ssh_tunnel(ssh::ssh_connect(host = "s161.servername.online", passwd = "{key_get("coconuts", "r_user")}"), port = 5555, target = "127.0.0.1:3306")'
+# pid <- sys::r_background(
+#   std_out = FALSE,
+#   std_err = FALSE,
+#   args = c("-e", cmd)
+# )
+# con <- DBI::dbConnect(
+#   drv = RMariaDB::MariaDB(),
+#   dbname = "psych270_coconuts", 
+#   host = "s161.servername.online",
+#   port = 5555,
+#   username = "psych270_data_access", 
+#   password = key_get("coconuts", "r_user")
+# )
+# # do somehting
+# DBI::dbDisconnect(con)
 
 # load arrangements -------------------------------------------------------
 
@@ -26,8 +51,8 @@ source("scripts/fun/calc-trapline-metrics.R")
 # establish con -----------------------------------------------------------
 
 # establish and store connection
-con <- dbConnect(
-  MariaDB(),
+con <- DBI::dbConnect(
+  RMariaDB::MariaDB(),
   dbname = "psych270_coconuts", 
   host = "s161.servername.online",
   port = 3306,
@@ -84,36 +109,134 @@ trap <- trapline_metrics(seq)
 ##      simulated data
 ## -----------------------------------------------------------------------------
 
-# could have some issues with no subject col
-# grab simulated data
-simulated_forage_data <- read_csv("data/simulation/lvl1-2-100-rep-forage.csv")
 
-summary(simulated_forage_data)
+# trapline metric creation ------------------------------------------------
 
-seq <- create_sequences(simulated_forage_data, data_type = "simulation")
+# # could have some issues with no subject col
+# # grab simulated data
+# simulated_forage_data <- read_csv("data/simulation/lvl1-2-100-rep-forage.csv")
+# 
+# summary(simulated_forage_data)
+# 
+# seq <- create_sequences(simulated_forage_data, data_type = "simulation")
+# 
+# # find how many unique coconuts were collected
+# summary <- seq |> 
+#   group_by(level, forage_number, nn_rule) |> 
+#   summarize(
+#     n_unique = length(unique(obj_ID))
+#   )
+# # # calculate trapline metrics 
+# # trap <- trapline_metrics(seq, data_type = "simulation")
+# 
+# # read in trapline metrics
+# traplines <- read_csv("data/simulation/lvl1-2-simulated-trapline-metrics.csv")
+# 
+# # read in performance
+# sim_performance <- read_csv("data/simulation/lvl1-2-100-rep-performance.csv")
+# 
+# sim_performance <- sim_performance |> 
+#   mutate(
+#     level = paste("_level_", level, sep = "")
+#   )
+# 
+# # join together
+# perf_and_trapline <- left_join(
+#   perf_and_trapline, summary, 
+#   join_by(level == level, forage_number == forage_number, nn_rule == nn_rule)
+#   )
+# 
+# write_csv(perf_and_trapline, "data/simulation/lvl1-2-all-metrics.csv")
 
-trap <- trapline_metrics(seq, data_type = "simulation")
+
+# trapline analysis -------------------------------------------------------
+
+perf_and_trapline <- read_csv("data/simulation/lvl1-2-all-metrics.csv")
 
 # view
-trap |> 
+perf_and_trapline |> 
   ggplot(aes(x = rmi, color = as.factor(nn_rule), fill = as.factor(nn_rule))) +
   
   geom_density(
     alpha = .5
   ) +
   
-  facet_wrap(~level, labels = c("Level 1", "Level 2")) +
+  facet_wrap(~level) +
   
   theme_bw()
 
 # see correlation of metrics
-trap |> 
+perf_and_trapline |> 
   ggplot() +
   
-  geom_point(aes(x = det, y = rmi, color = as.factor(nn_rule))) +
+  geom_point(aes(x = rmi, y = steps, color = as.factor(nn_rule))) +
   
-  theme_bw()
+  theme_bw() + 
+  
+  facet_wrap(~level)
+
+# try fitting a model
+library(lme4)
+
+# center
+perf_and_trapline <- perf_and_trapline |> 
+  mutate(
+    c.rmi = rmi - mean(rmi), 
+    c.det = det - mean(det), 
+    c.n_unique = n_unique - mean(n_unique), 
+    nn_rule = as.factor(nn_rule)
+  )
+
+contrasts(perf_and_trapline$nn_rule) <- contr.sum(6)
+
+contrasts(perf_and_trapline$nn_rule)
+
+perf_model <- lmer(
+  steps ~ c.rmi * c.det * c.n_unique * nn_rule + (1 | level), # nested by level
+  data = perf_and_trapline
+)
+
+summary(perf_model)
+
+library(performance)
+library(marginaleffects)
+
+check_model(perf_model)
+
+# create new data to visualize
+newd <- expand.grid(
+  c.rmi = seq(min(perf_and_trapline$c.rmi), max(perf_and_trapline$c.rmi), length.out = 20), 
+  c.det = seq(min(perf_and_trapline$c.det), max(perf_and_trapline$c.det), length.out = 20),
+  c.n_unique = seq(min(perf_and_trapline$c.n_unique), max(perf_and_trapline$c.n_unique), length.out = 20),
+  level = c("_level_1", "_level_2"), 
+  nn_rule = c(0:5)
+)
+
+predictions(
+  
+)
+
+# add col
+newd <- newd |> 
+  add_column(predicted = fit)
+
+ggplot() +
+  
+  # raw data
+  geom_point(data = perf_and_trapline, aes(x = c.rmi, y = steps, color = as.factor(nn_rule))) +
+  
+  # fits
+  geom_line(data = newd, aes(x = c.rmi, y = predicted, color = as.factor(nn_rule))) +
+  
+  theme_bw() +
+  
+  facet_wrap(~as.factor(level))
 
 # can see a clear main effect on the agents of level design, whether there are
 # mixed sizes or not
 # nn0 tends to not trapline as much in either scenario  
+
+# NEXT STEPS 
+# can work on integrating performance metrics of simulation with the traplining
+# data along with any other predictors of interest like average size of coconuts
+# or number of unique coconuts visited
