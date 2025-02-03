@@ -86,21 +86,23 @@ forage_data <- read_csv("data/piloting/1-13-my-run-only.csv")
 plot_path(1, 10)
 
 # consider only subjects who completed game
-keep <- who_completed(forage_data)
+keep <- who_completed(my_run)
 
-completed_only <- forage_data |> 
+completed_only <- my_run |> 
   dplyr::filter(subject == keep)
 
 # now get the sequences, resulting df is a little smaller b/c tutorial is 
 # dropped
 seq <- create_sequences(completed_only)
 
-# check out recurrence plot
 SEQ <- seq |> 
   dplyr::filter(level == "_level_10") |> 
   pull(obj_ID)
 
 recurrencePlot(SEQ, m = 1, d = 0, eps = 1, nt = 1, end.time = 800, pch = 16, cex = .1)
+
+seq <- seq |> 
+  dplyr::filter(level != "_tutorial")
 
 # run this function to generate both routine movement index and determinism #s
 trap <- trapline_metrics(seq)

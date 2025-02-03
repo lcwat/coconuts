@@ -13,18 +13,21 @@ source("scripts/fun/determinism.R")
 source("scripts/fun/entropy.R")
 source("scripts/fun/AutoO.R")
 
-trapline_metrics <- function(sequence_df, data_type = "subject") {
-  if(data_type == "simulation") {
-    ## SIMULATION
-    # create table for output
-    output <- tibble(
-      forage_number = numeric(),
-      nn_rule = numeric(),
-      level = character(), 
-      det = numeric(), 
-      rmi = numeric(),
-      ood = numeric()
-    )
+trapline_metrics <- function(sequence_df) {
+  # create table for output
+  output <- tibble(
+    subject = numeric(), 
+    level = character(), 
+    det = numeric(), 
+    rmi = numeric(),
+    ood = numeric()
+  )
+  
+  # loop through df and find entropy value for each level, prob best to do this
+  # on the desktop, takes quite a bit of memory to do, will be slow on laptop
+  for(i in seq_along(unique(sequence_df$subject))) {
+    # set subj number
+    subj <- sequence_df$subject[[i]]
     
     # set nearest neighbors to look through
     nn <- unique(sequence_df$nn_rule)
