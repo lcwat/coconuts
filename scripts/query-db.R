@@ -68,9 +68,6 @@ con <- DBI::dbConnect(
 ##      subject data
 ## -----------------------------------------------------------------------------
 
-# list tables in db
-dbListTables(con)
-
 # or read in a table as df, seems more sensible for working right now b/c
 # the connection times out in 20s or so 
 forage_data <- dbReadTable(con, "ForageData")
@@ -78,17 +75,27 @@ location_data <- dbReadTable(con, "LocationData")
 
 dbDisconnect(con)
 
+# write to local drive
+write_csv(forage_data, "data/piloting/3-4-25-forage-piloting-data.csv")
+write_csv(location_data, "data/piloting/3-4-25-path-piloting-data.csv")
+
 # or grab what has already been saved
 forage_data <- read_csv("data/piloting/1-13-my-run-only.csv")
 
+# see the level order
+forage_data |> 
+  dplyr::filter(subject == 6) |> 
+  pull(level) |> 
+  unique()
+
 # plot path, specify subject no., level no., and matching level dataframe, 
 # should work well with shiny app, although unsure of how showtext will look
-plot_path(1, 10)
+plot_path(1, 5)
 
 # consider only subjects who completed game
-keep <- who_completed(my_run)
+keep <- who_completed(forage_data)
 
-completed_only <- my_run |> 
+completed_only <- forage_data |> 
   dplyr::filter(subject == keep)
 
 # now get the sequences, resulting df is a little smaller b/c tutorial is 
@@ -106,6 +113,21 @@ seq <- seq |>
 
 # run this function to generate both routine movement index and determinism #s
 trap <- trapline_metrics(seq)
+
+lvl <- trap |> 
+  dplyr::filter(level == c("_level_1", "_level_2"))
+
+
+# function for plotting route with trapline metrics
+plot_w_metrics <- function(subj, lvl) {
+  p <- plot_path(subj, lvl) +
+    annotate("text", x = 0, y = -31, label = paste("Det = ", format(trap$det[lvl], digits = 2), sep = "")) +
+    annotate("text", x = 0, y = -35, label = paste("R = ", format(trap$rmi[lvl], digits = 2), sep = ""))
+  
+  p
+}
+
+plot_w_metrics(1, 10)
 
 ## -----------------------------------------------------------------------------
 ##      simulated data
@@ -171,7 +193,9 @@ perf_and_trapline |>
 perf_and_trapline |> 
   ggplot() +
   
-  geom_point(aes(x = rmi, y = steps, color = as.factor(nn_rule))) +
+  geom_point(aes(x = det, y = steps, color = as.factor(nn_rule))) +
+  
+  scale_color_viridis_d("NN rule", option = "turbo") +
   
   theme_bw() + 
   
@@ -194,29 +218,81 @@ contrasts(perf_and_trapline$nn_rule) <- contr.sum(6)
 contrasts(perf_and_trapline$nn_rule)
 
 perf_model <- lmer(
-  steps ~ c.rmi * c.det * c.n_unique * nn_rule + (1 | level), # nested by level
+  steps ~ c.rmi * c.det * c.n_unique + (c.rmi * c.det * c.n_unique | level:nn_rule), # nested by level
   data = perf_and_trapline
 )
+
+perf_model <- lmer(
+  steps ~ c.rmi * c.det * c.n_unique + (c.rmi * c.det * c.n_unique | nn_rule) + (1 | level), # nested by level
+  data = perf_and_trapline
+)
+
+# see how the strategies and performance are changing across levels and subjects (nn)
+model_step <- lmer(
+  steps ~ level + (level | nn_rule), 
+  data = perf_and_trapline
+)
+
+model_rmi <- lmer(
+  rmi ~ level + (level | nn_rule), 
+  data = perf_and_trapline
+)
+
+hist(perf_and_trapline$c.n_unique)
+
+coef(perf_model)
 
 summary(perf_model)
 
 library(performance)
 library(marginaleffects)
+library(emmeans)
 
 check_model(perf_model)
 
 # create new data to visualize
-newd <- expand.grid(
-  c.rmi = seq(min(perf_and_trapline$c.rmi), max(perf_and_trapline$c.rmi), length.out = 20), 
-  c.det = seq(min(perf_and_trapline$c.det), max(perf_and_trapline$c.det), length.out = 20),
-  c.n_unique = seq(min(perf_and_trapline$c.n_unique), max(perf_and_trapline$c.n_unique), length.out = 20),
-  level = c("_level_1", "_level_2"), 
-  nn_rule = c(0:5)
+toplot <- data.frame(
+  emmeans(perf_model, ~c.rmi * c.det*c.n_unique, at=list(
+    c.rmi = seq(.4,1,.1) - mean(perf_and_trapline$rmi), 
+    c.det = c(.2, .4, .6) - mean(perf_and_trapline$det), 
+    c.n_unique = c(24, 36, 52) - mean(perf_and_trapline$c.n_unique)
+  ))
 )
 
-predictions(
-  
+toplot <- data.frame(
+  emmeans(perf_model, ~c.rmi, at=list(
+    c.rmi = seq(.4,1,.1) - mean(perf_and_trapline$rmi)
+  ))
 )
+
+toplot
+
+ggplot(toplot, aes(x = c.rmi, y = emmean)) +
+  
+  geom_line() +
+  
+  geom_ribbon(aes(ymin = emmean - SE, ymax = emmean + SE), alpha = .3, color = NA) +
+  geom_point(data = perf_and_trapline, aes(y = steps))
+
+ggplot(toplot, aes(x = c.rmi, y = emmean, color = as.factor(c.det))) +
+  
+  geom_line() +
+  
+  geom_ribbon(
+    aes(
+      ymin = emmean - SE, ymax = emmean + SE, fill = as.factor(c.det)
+    ), alpha = .3, color = NA
+  ) +
+  facet_grid(~c.n_unique)
+
+perf_and_trapline$fitted = fitted(perf_model)
+
+ggplot(perf_and_trapline, aes(x = rmi, y = fitted)) +
+  
+  geom_point() +
+  
+  facet_grid(~level~nn_rule)
+
 
 # add col
 newd <- newd |> 
