@@ -79,12 +79,16 @@ dbDisconnect(con)
 write_csv(forage_data, "data/piloting/3-4-25-forage-piloting-data.csv")
 write_csv(location_data, "data/piloting/3-4-25-path-piloting-data.csv")
 
+# read local data
+forage_data <- read_csv("data/piloting/3-4-25-forage-piloting-data.csv")
+location_data <- read_csv("data/piloting/3-4-25-path-piloting-data.csv")
+
 # or grab what has already been saved
 forage_data <- read_csv("data/piloting/1-13-my-run-only.csv")
 
 # see the level order
 forage_data |> 
-  dplyr::filter(subject == 6) |> 
+  dplyr::filter(subject == 8) |> 
   pull(level) |> 
   unique()
 
@@ -96,15 +100,20 @@ plot_path(1, 5)
 keep <- who_completed(forage_data)
 
 completed_only <- forage_data |> 
-  dplyr::filter(subject == keep)
+  dplyr::filter(
+    subject == keep[1] | subject == keep[2] | subject == keep[3] |
+      subject == keep[4] | subject == keep[5] | subject == 4
+    )
 
 # now get the sequences, resulting df is a little smaller b/c tutorial is 
 # dropped
 seq <- create_sequences(completed_only)
 
-SEQ <- seq |> 
-  dplyr::filter(level == "_level_10") |> 
-  pull(obj_ID)
+# check to see completion of levels
+seq |> 
+  dplyr::filter(subject == 4) |> 
+  pull(level) |> 
+  unique()
 
 recurrencePlot(SEQ, m = 1, d = 0, eps = 1, nt = 1, end.time = 800, pch = 16, cex = .1)
 
@@ -113,6 +122,23 @@ seq <- seq |>
 
 # run this function to generate both routine movement index and determinism #s
 trap <- trapline_metrics(seq)
+
+# write
+write_csv(trap, "data/piloting/3-4-25-trapline-metrics.csv")
+
+perform <- calc_perform_metrics(location_data) |> 
+  dplyr::filter(
+    subject == keep[1] | subject == keep[2] | subject == keep[3] |
+      subject == keep[4] | subject == keep[5] | subject == 4
+  )
+
+perform <- perform |> 
+  dplyr::filter(level != "_tutorial")
+
+metrics <- left_join(perform, trap)
+
+# save 
+write_csv(metrics, "data/piloting/3-4-25-all-metrics.csv")
 
 lvl <- trap |> 
   dplyr::filter(level == c("_level_1", "_level_2"))

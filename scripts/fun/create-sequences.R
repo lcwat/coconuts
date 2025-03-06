@@ -103,7 +103,7 @@ create_sequences <- function(
         seq <- forage_lvl_df[which(forage_lvl_df[,1] == subj[j]), c("subject", "level", "obj_ID")]
         
         # put the seq together into 2 col df with seq and subj
-        seq["order"] <- seq_along(seq[,1])
+        seq["order_collected"] <- seq.int(1, length(pull(seq[ ,1])), 1)
         
         lvl_seq <- rbind(lvl_seq, seq)
       }

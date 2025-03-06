@@ -82,21 +82,12 @@ trapline_metrics <- function(sequence_df, data_type = "subject") {
     }
   } else if(data_type == "subject") {
     ## SUBJECT
-    # create table for output
-    output <- tibble(
-      subject = numeric(), 
-      level = character(), 
-      det = numeric(), 
-      rmi = numeric(),
-      ood = numeric()
-    )
-    
     # create vector of subj ids to loop through
-    subjects <- seq_along(unique(sequence_df$subject))
+    subjects <- unique(sequence_df$subject)
     
     # loop through df and find entropy value for each level, prob best to do this
     # on the desktop, takes quite a bit of memory to do, will be slow on laptop
-    for(i in subjects) {
+    for(i in 1:length(subjects)) {
       # set subj number
       subj <- subjects[[i]]
       
@@ -109,16 +100,24 @@ trapline_metrics <- function(sequence_df, data_type = "subject") {
           dplyr::filter(subject == subj, level == level_string) |> 
           pull(obj_ID)
         
-        # calculate determinism (d), entropy (e)/routine movement index (r), order 
-        # of dependency (o) (additional info.)
-        d <- determinism(s, 5)
+        # check to see if level was played, if not, add NAs
+        if(length(s) == 0) {
+          d = NA
+          r = NA
+          o = NA
+        } else {
+          # calculate determinism (d), entropy (e)/routine movement index (r), order 
+          # of dependency (o) (additional info.)
+          d <- determinism(s, 5)
+          
+          e <- entropy(s)
+          
+          r <- 1 - min(e)
+          
+          o <- AutoO(e)
+        }
         
-        e <- entropy(s)
-        
-        r <- 1 - min(e)
-        
-        o <- AutoO(e)
-        
+        # add data to output
         output <- output |> 
           add_row(
             subject = subj, level = level_string, det = d, rmi = r, ood = o
