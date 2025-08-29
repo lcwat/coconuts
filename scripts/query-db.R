@@ -76,9 +76,15 @@ location_data <- dbReadTable(con, "LocationData")
 
 dbDisconnect(con)
 
+# read in trapline pilot data
+metrics <- read_csv("data/piloting/3-4-25-all-metrics.csv")
+
 # write to local drive
 write_csv(forage_data, "data/piloting/3-4-25-forage-piloting-data.csv")
 write_csv(location_data, "data/piloting/3-4-25-path-piloting-data.csv")
+
+
+# read in data and look ---------------------------------------------------
 
 # read local data
 forage_data <- read_csv("data/piloting/3-4-25-forage-piloting-data.csv")
@@ -95,12 +101,16 @@ forage_data |>
 
 # plot path, specify subject no., level no., and matching level dataframe, 
 # should work well with shiny app, although unsure of how showtext will look
+<<<<<<< HEAD
 p1 <- plot_path(6, 3) + guides(color = "none")
 p2 <- plot_path(8, 3)
 
 p1 + p2
 
 ggsave("fig_output/pilot_path_comparison.png", device = "png", width = 13, height = 6, units = "in")
+=======
+plot_path(8, 6)
+>>>>>>> dda263cacd442d030574601a8a3a7a645a022965
 
 # consider only subjects who completed game
 keep <- who_completed(forage_data)
@@ -146,20 +156,16 @@ metrics <- left_join(perform, trap)
 # save 
 write_csv(metrics, "data/piloting/3-4-25-all-metrics.csv")
 
-lvl <- trap |> 
-  dplyr::filter(level == c("_level_1", "_level_2"))
-
-
 # function for plotting route with trapline metrics
 plot_w_metrics <- function(subj, lvl) {
   p <- plot_path(subj, lvl) +
-    annotate("text", x = 0, y = -31, label = paste("Det = ", format(trap$det[lvl], digits = 2), sep = "")) +
-    annotate("text", x = 0, y = -35, label = paste("R = ", format(trap$rmi[lvl], digits = 2), sep = ""))
+    annotate("text", x = 0, y = -31, label = paste("Det = ", format(metrics$det[lvl], digits = 2), sep = "")) +
+    annotate("text", x = 0, y = -35, label = paste("R = ", format(metrics$rmi[lvl], digits = 2), sep = ""))
   
   p
 }
 
-plot_w_metrics(1, 10)
+plot_w_metrics(1, 1)
 
 ## -----------------------------------------------------------------------------
 ##      simulated data
@@ -210,12 +216,30 @@ plot_w_metrics(1, 10)
 perf_and_trapline <- read_csv("data/simulation/lvl1-2-all-metrics.csv")
 
 # view
-perf_and_trapline |> 
-  ggplot(aes(x = rmi, color = as.factor(nn_rule), fill = as.factor(nn_rule))) +
+metrics |> 
+  ggplot(aes(x = det)) +
   
   geom_density(
-    alpha = .5
+    alpha = .5, fill = "grey80"
   ) +
+  
+  facet_wrap(~level) +
+  
+  theme_bw()
+
+metrics |> 
+  ggplot(aes(x = det, y = total_dist_in_lvl, color = as.factor(subject))) +
+  
+  geom_point() +
+  
+  facet_wrap(~level) +
+  
+  theme_bw()
+
+metrics |> 
+  ggplot(aes(x = as.factor(subject), y = total_dist_in_lvl, fill = as.factor(subject))) +
+  
+  geom_bar(stat = "identity") +
   
   facet_wrap(~level) +
   
