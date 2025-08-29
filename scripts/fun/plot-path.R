@@ -10,7 +10,10 @@ font_add_google("Alegreya Sans")
 
 showtext_auto()
 
-showtext_opts(dpi = 300)
+showtext_opts(dpi = 100)
+
+# add colors
+clrs <- NatParksPalettes::natparks.pals("SmokyMtns")
 
 plot_path <- function(
     subj, level, level_df = obj_location_data,
@@ -46,9 +49,10 @@ plot_path <- function(
     counts <- left_join(lvl, count_dem, join_by(obj_ID == obj_ID))
     
     # get numbers to create useful breaks on legend
-    brks <- unique(counts$count)
-    
-    brks <- brks[!is.na(brks)]
+    # brks <- unique(counts$count)
+    # 
+    # brks <- brks[!is.na(brks)]
+    brks <- c(5, 10, 15, 20, 25, 30)
     
     # what sizes are on level determine whether or not point scaling is used
     if(length(unique(counts$point_value)) < 2) {
@@ -72,13 +76,22 @@ plot_path <- function(
           guide = "none"
         ) +
         
-        scale_color_viridis_c(
+        scale_color_gradient2(
           "Coconut\ncollections",
-          option = "mako",
-          begin = 0, end = .9, direction = -1,
-          breaks = brks,
-          na.value = "grey90"
+          low = clrs[3], 
+          mid = clrs[2], 
+          high = clrs[1], 
+          midpoint = 15, 
+          breaks = brks
         ) +
+        
+        # scale_color_viridis_c(
+        #   "Coconut\ncollections",
+        #   option = "mako",
+        #   begin = 0, end = .9, direction = -1,
+        #   breaks = brks,
+        #   na.value = "grey90"
+        # ) +
         
         theme_void() +
         
@@ -110,19 +123,34 @@ plot_path <- function(
           range = c(2, 6)
         ) +
         
-        scale_color_viridis_c(
+        lims(x = c(-30, 30), y = c(-30, 30)) +
+        
+        scale_color_gradient2(
           "Coconut\ncollections",
-          option = "mako",
-          begin = 0, end = .9, direction = -1,
-          breaks = brks,
-          na.value = "grey90"
+          low = clrs[3], 
+          mid = clrs[2], 
+          high = clrs[1], 
+          midpoint = 15, 
+          breaks = brks, 
+          limits = c(1, 30), 
+          na.value = clrs[7]
         ) +
+        
+        # scale_color_viridis_c(
+        #   "Coconut\ncollections",
+        #   option = "mako",
+        #   begin = 0, end = .9, direction = -1,
+        #   breaks = brks,
+        #   midpoint = 15,
+        #   na.value = "grey90"
+        # ) +
         
         theme_void() +
         
         theme(
-          title = element_text(family = "Alegreya Sans", face = "bold"), 
-          text = element_text(family = "Alegreya Sans")
+          title = element_text(family = "Alegreya Sans", face = "bold", size = 24), 
+          text = element_text(family = "Alegreya Sans", size = 18), 
+          plot.margin = margin(.1, .1, .1, .1, "in")
         )
     }
   } else if(data_type == "simulation") {
