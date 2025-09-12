@@ -56,6 +56,9 @@ dbDisconnect(con)
 
 # read in trapline pilot data
 metrics <- read_csv("data/piloting/3-4-25-all-metrics.csv")
+# read local data
+forage_data <- read_csv("data/piloting/3-4-25-forage-piloting-data.csv")
+location_data <- read_csv("data/piloting/3-4-25-path-piloting-data.csv")
 
 # write to local drive
 write_csv(forage_data, "data/piloting/3-4-25-forage-piloting-data.csv")
@@ -63,13 +66,6 @@ write_csv(location_data, "data/piloting/3-4-25-path-piloting-data.csv")
 
 
 # read in data and look ---------------------------------------------------
-
-# read local data
-forage_data <- read_csv("data/piloting/3-4-25-forage-piloting-data.csv")
-location_data <- read_csv("data/piloting/3-4-25-path-piloting-data.csv")
-
-# or grab what has already been saved
-forage_data <- read_csv("data/piloting/1-13-my-run-only.csv")
 
 # see the level order
 forage_data |> 
