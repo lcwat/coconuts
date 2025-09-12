@@ -12,6 +12,7 @@
 library(DBI) # database access in R
 library(RMariaDB) # con to MySQL db
 library(tidyverse)
+library(patchwork)
 library(keyring) # access password for db
 
 
@@ -96,7 +97,16 @@ forage_data |>
 
 # plot path, specify subject no., level no., and matching level dataframe, 
 # should work well with shiny app, although unsure of how showtext will look
+<<<<<<< HEAD
+p1 <- plot_path(6, 3) + guides(color = "none")
+p2 <- plot_path(8, 3)
+
+p1 + p2
+
+ggsave("fig_output/pilot_path_comparison.png", device = "png", width = 13, height = 6, units = "in")
+=======
 plot_path(8, 6)
+>>>>>>> dda263cacd442d030574601a8a3a7a645a022965
 
 # consider only subjects who completed game
 keep <- who_completed(forage_data)
