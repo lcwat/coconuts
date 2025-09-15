@@ -267,3 +267,5 @@ plot_path <- function(
   
   return(p)
 }
+
+plot_path(1, 1)
